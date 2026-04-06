@@ -2,69 +2,68 @@
 
 [![License](https://img.shields.io/badge/license-ISC-blue.svg)](LICENSE)
 
-A Node.js based Model Context Protocol (MCP) bridge that allows **Antigravity** (and other MCP clients) to interact with locally hosted LLMs on **LM Studio**.
+A Node.js based Model Context Protocol (MCP) bridge that enables **Antigravity** (and other MCP clients) to interact with locally hosted Large Language Models (LLMs) via **LM Studio**.
 
-[繁體中文說明](#繁體中文) | [English Documentation](#english)
+## Overview
 
----
+This bridge acts as a translation layer between the MCP standard and LM Studio's OpenAI-compatible and native administrative APIs. It allows AI assistants to autonomously query, load, and manage local models running on your hardware.
 
-<a name="english"></a>
-## English
+## Features
 
-### Features
-- **Query Local LLMs**: Generate text using models hosted in LM Studio.
-- **Model Management**: Dynamically `load` and `unload` GGUF models.
-- **Local Embeddings**: Convert text to vectors using local models (e.g., Nomic Embed).
-- **System Insights**: List available models and detailed technical status.
+- 💬 **Query Local LLMs**: Generate text directly using your hosted models.
+- 🔄 **Model Management**: Support for dynamically `loading` and `unloading` GGUF models via API.
+- 🧠 **Local Embeddings**: Convert text into vector embeddings using specialized models (e.g., Nomic Embed), ideal for local RAG implementations.
+- 📊 **Detailed Status**: Retrieve a comprehensive list of all loaded models and their technical details.
 
-### Prerequisites
-- [LM Studio](https://lmstudio.ai/) running with Local Server enabled (default port `1234`).
-- [Node.js](https://nodejs.org/) (v18 or higher recommended).
-- [Antigravity](https://gemini.google.com/antigravity) or any MCP-compatible environment.
+## Prerequisites
 
-### Setup
-1. Clone this repository.
-2. Install dependencies:
-   ```bash
-   npm install
-   ```
-3. Update the `LM_HOST` in `src/index.js` to your LM Studio's IP address (default is `192.168.1.131`).
-4. Add the following to your Antigravity MCP configuration:
-   ```json
-   {
-     "mcpServers": {
-       "lmstudio-bridge": {
-         "command": "node",
-         "args": ["path/to/lmstudio-mcp-bridge/src/index.js"]
-       }
-     }
-   }
-   ```
+- **LM Studio**: version 0.3.0+ (with Local Server enabled on port `1234`).
+- **Node.js**: v18.0.0 or higher.
+- **MCP Client**: Such as Antigravity, Claude Desktop, or any tool that supports the Model Context Protocol.
 
----
+## Getting Started
 
-<a name="繁體中文"></a>
-## 繁體中文
+### 1. Installation
 
-### 功能特色
-- **本地 LLM 查詢**：使用 LM Studio 託管的模型進行文本生成。
-- **模型管理**：支援動態 `load`（載入）與 `unload`（卸載）GGUF 模型。
-- **本地向量化 (Embeddings)**：使用本地模型（如 Nomic Embed）將文字轉換為向量。
-- **系統清單**：列出所有可用的模型及其詳細技術狀態。
+Clone this repository and install the required dependencies:
 
-### 前提條件
-- 已安裝 [LM Studio](https://lmstudio.ai/) 並開啟本地伺服器（預設連接埠 `1234`）。
-- 已安裝 [Node.js](https://nodejs.org/)（建議 v18 以上版本）。
-- 已安裝 [Antigravity](https://gemini.google.com/antigravity) 或任何支援 MCP 的環境。
+```bash
+git clone https://github.com/ozwei/lmstudio-mcp-bridge.git
+cd lmstudio-mcp-bridge
+npm install
+```
 
-### 安裝步驟
-1. 克隆 (Clone) 此儲存庫。
-2. 安裝依賴套件：
-   ```bash
-   npm install
-   ```
-3. 修改 `src/index.js` 中的 `LM_HOST` 為你的 LM Studio IP 地址。
-4. 將伺服器配置加入你的 Antigravity MCP 設定中。
+### 2. Configuration
+
+Open `src/index.js` and ensure the `LM_HOST` constant matches your machine's IP address:
+
+```javascript
+const LM_HOST = "192.168.1.131"; // Update this to your LM Studio host IP
+```
+
+### 3. Usage in Antigravity
+
+Add the bridge to your MCP settings:
+
+```json
+{
+  "mcpServers": {
+    "lmstudio-bridge": {
+      "command": "node",
+      "args": ["C:/absolute/path/to/lmstudio-mcp-bridge/src/index.js"]
+    }
+  }
+}
+```
+
+## Available Tools
+
+- `query_local_llm`: Main tool for chat completions (supports `temperature`, `max_tokens`, etc.).
+- `get_local_embeddings`: Convert strings into vector representations.
+- `list_local_models`: List all loaded models (use `detailed: true` for full metadata).
+- `load_local_model`: Tell LM Studio to load a specific model ID into memory.
+- `unload_local_model`: Unload a model instance to free up VRAM.
 
 ## License
-Distributed under the ISC License. See `LICENSE` for more information.
+
+This project is licensed under the ISC License - see the [LICENSE](LICENSE) file for details.
