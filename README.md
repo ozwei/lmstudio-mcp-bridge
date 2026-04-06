@@ -55,11 +55,16 @@ npm install
 
 ### 2. Configuration
 
-Open `src/index.js` and ensure the `LM_HOST` constant matches your machine's IP address:
+Create a `.env` file in the root directory (you can copy from `.env.example`) and fill in your LM Studio details:
 
-```javascript
-const LM_HOST = "192.168.1.131"; // Update this to your LM Studio host IP
+```env
+LM_HOST=192.168.1.131
+LM_PORT=1234
+LM_API_TOKEN=your_token_here
 ```
+
+> [!NOTE]
+> The `.env` file is excluded from Git to protect your sensitive configuration.
 
 ### 3. Usage in Antigravity
 

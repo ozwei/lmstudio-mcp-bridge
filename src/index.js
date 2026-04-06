@@ -9,11 +9,14 @@ import fs from "fs/promises";
 import path from "path";
 import os from "os";
 
-// Configuration for LM Studio
-const LM_HOST = "192.168.1.131";
-const LM_PORT = "1234";
+// Load environment variables
+import "dotenv/config";
+
+// Configuration for LM Studio (from .env)
+const LM_HOST = process.env.LM_HOST || "localhost";
+const LM_PORT = process.env.LM_PORT || "1234";
+const LM_API_TOKEN = process.env.LM_API_TOKEN || "";
 const LM_BASE_URL = `http://${LM_HOST}:${LM_PORT}`;
-const LM_API_TOKEN = "sk-lm-OnWJx9dG:PnCBnM2zxKeVv8rGVf6l";
 
 const server = new Server(
   {
