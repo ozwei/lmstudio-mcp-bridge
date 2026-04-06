@@ -14,6 +14,26 @@ This bridge acts as a translation layer between the MCP standard and LM Studio's
 - 🔄 **Model Management**: Support for dynamically `loading` and `unloading` GGUF models via API.
 - 🧠 **Local Embeddings**: Convert text into vector embeddings using specialized models (e.g., Nomic Embed), ideal for local RAG implementations.
 - 📊 **Detailed Status**: Retrieve a comprehensive list of all loaded models and their technical details.
+- 🌡️ **Resource Monitoring**: Check system CPU and RAM usage to manage model loads effectively.
+
+## User Scenarios: Why Use This Bridge?
+
+This bridge transforms Antigravity from a cloud-only assistant into a hybrid powerhouse that respects your privacy and hardware.
+
+### 1. 🛡️ Privacy-First Code Analysis
+Instead of sending proprietary code or sensitive files to the cloud, you can ask Antigravity to use your local Llama 3 model. The code stays on your machine; only the final analysis result is sent back to the cloud assistant.
+
+### 2. 📚 Local RAG (Knowledge Search)
+By using `get_local_embeddings`, you can index thousands of local PDFs or Markdown notes. When you ask a question, Antigravity can search your local drive, find the relevant passage, and use that context to answer you, keeping your personal data private.
+
+### 3. ⚡ Efficiency & Cost Optimization
+For repetitive, low-complexity tasks like "fix the capitalization in these 50 files," Antigravity can delegate the work to a lightweight local model (like `Nemotron-Mini`), saving your cloud token quota for harder reasoning tasks.
+
+### 4. 🧪 Automated AI Benchmarking
+If you are an AI developer, you can use Antigravity to script the loading and unloading of different quantized models (Q4, Q8, etc.) to test performance and accuracy across various architectures automatically.
+
+### 5. 🌡️ Resource-Aware Computing
+With the `get_system_health` tool, Antigravity can check your available VRAM before deciding whether to load a heavy model, preventing system crashes and ensuring a smooth hybrid experience.
 
 ## Prerequisites
 
@@ -59,8 +79,11 @@ Add the bridge to your MCP settings:
 ## Available Tools
 
 - `query_local_llm`: Main tool for chat completions (supports `temperature`, `max_tokens`, etc.).
+- `query_local_file`: Read a local file and query the local model about it.
+- `search_local_docs`: Local semantic search across a directory.
 - `get_local_embeddings`: Convert strings into vector representations.
-- `list_local_models`: List all loaded models (use `detailed: true` for full metadata).
+- `get_system_health`: Check local CPU/Memory usage.
+- `list_local_models`: List all loaded models.
 - `load_local_model`: Tell LM Studio to load a specific model ID into memory.
 - `unload_local_model`: Unload a model instance to free up VRAM.
 
