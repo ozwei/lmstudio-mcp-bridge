@@ -10,12 +10,9 @@ This bridge acts as a translation layer between the MCP standard and LM Studio's
 
 ## Features
 
-- 💬 **Query Local LLMs**: Standard text generation plus **Vision**, **JSON Mode**, and **Reasoning** control.
-- 🖼️ **Image Analysis**: Dedicated tool for privacy-focused local vision analysis.
-- 🔄 **Model Management**: Support for dynamically `loading` and `unloading` GGUF models via API.
-- 🧠 **Local Embeddings**: Convert text into vector embeddings using specialized models (e.g., Nomic Embed), ideal for local RAG implementations.
-- 📊 **Detailed Status**: Retrieve a comprehensive list of all loaded models and their technical details.
-- 🌡️ **Resource Monitoring**: Check system CPU and RAM usage to manage model loads effectively.
+- 💬 **Query Local LLMs**: Standard text generation with JSON Schema support.
+- 📊 **Model Listing**: Retrieve a comprehensive list of all loaded models.
+- 🌡️ **Error Handling**: Graceful recovery from model loading or inference failures.
 
 ## User Scenarios: Why Use This Bridge?
 
@@ -96,55 +93,28 @@ Add the bridge to your MCP settings:
 
 ## Available Tools
 
-- `query_local_llm`: Main tool for chat completions. Supports `image_path` (Vision), `json_mode` (Structured Output), and `reasoning` (Thinking Depth).
-- `analyze_local_image`: Vision-specific tool for local image analysis (Sync).
-- `analyze_local_image_async`: **(Recommended for Vision)** Starts a background task for image analysis to avoid MCP timeouts.
-- `get_bridge_task_status`: Retrieve results from an async task using its `task_id`.
-- `query_local_file`: Read a local file and query the local model about it.
-- `search_local_docs`: Local semantic search across a directory.
-- `get_local_embeddings`: Convert strings into vector representations.
-- `get_system_health`: Check local CPU/Memory usage.
+- `query_local_llm`: Main tool for chat completions. Supports `json_mode` and `json_schema` (Structured Output).
 - `list_local_models`: List all loaded models.
-- `load_local_model`: Tell LM Studio to load a specific model ID into memory.
-- `unload_local_model`: Unload a model instance to free up VRAM.
 
 ---
 
 ## Advanced Examples
 
-### 1. 🖼️ Vision (Image Analysis)
-Use `analyze_local_image` with a model like `llama-3.2-11b-vision-instruct`.
+### 🧱 Structured Data (JSON Schema)
+Force the model to return valid JSON following a specific schema.
 ```json
 {
-  "image_path": "C:\\Users\\otwo\\Desktop\\screenshot.png",
-  "prompt": "What is visible in this screenshot? Describe the UI elements."
+  "prompt": "Generate a random user profile",
+  "json_schema": {
+    "type": "object",
+    "properties": {
+      "name": { "type": "string" },
+      "age": { "type": "integer" }
+    },
+    "required": ["name", "age"]
+  }
 }
 ```
-
-### 2. 🧱 Structured Data (JSON Mode)
-Force the model to return valid JSON for automation.
-```json
-{
-  "prompt": "Extract names and dates from this text in JSON format",
-  "json_mode": true
-}
-```
-
-### 3. 🧠 Reasoning Control
-For models with chain-of-thought capabilities (e.g., DeepSeek-R1 or similar).
-```json
-{
-  "prompt": "Explain the quantum tunneling effect step by step.",
-  "reasoning": "high"
-}
-```
-
-### 4. ⚡ Async Architecture (Avoiding Timeouts)
-For heavy models or LM Link connections that take longer than 60 seconds, use the **Async Workflow**:
-
-1.  **Submit**: Use `analyze_local_image_async`. It returns a `task_id`.
-2.  **Wait**: The bridge processes the image in the background (up to 10 minutes timeout).
-3.  **Retrieve**: Use `get_bridge_task_status` with the `task_id` to get the result.
 
 ## License
 
