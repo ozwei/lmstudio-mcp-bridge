@@ -97,7 +97,9 @@ Add the bridge to your MCP settings:
 ## Available Tools
 
 - `query_local_llm`: Main tool for chat completions. Supports `image_path` (Vision), `json_mode` (Structured Output), and `reasoning` (Thinking Depth).
-- `analyze_local_image`: Vision-specific tool for local image analysis.
+- `analyze_local_image`: Vision-specific tool for local image analysis (Sync).
+- `analyze_local_image_async`: **(Recommended for Vision)** Starts a background task for image analysis to avoid MCP timeouts.
+- `get_bridge_task_status`: Retrieve results from an async task using its `task_id`.
 - `query_local_file`: Read a local file and query the local model about it.
 - `search_local_docs`: Local semantic search across a directory.
 - `get_local_embeddings`: Convert strings into vector representations.
@@ -136,6 +138,13 @@ For models with chain-of-thought capabilities (e.g., DeepSeek-R1 or similar).
   "reasoning": "high"
 }
 ```
+
+### 4. ⚡ Async Architecture (Avoiding Timeouts)
+For heavy models or LM Link connections that take longer than 60 seconds, use the **Async Workflow**:
+
+1.  **Submit**: Use `analyze_local_image_async`. It returns a `task_id`.
+2.  **Wait**: The bridge processes the image in the background (up to 10 minutes timeout).
+3.  **Retrieve**: Use `get_bridge_task_status` with the `task_id` to get the result.
 
 ## License
 

@@ -15,16 +15,22 @@ import dotenv from "dotenv";
 const __filename = fileURLToPath(import.meta.url);
 const __dirname = path.dirname(__filename);
 
-// Load environment variables from the root directory
-dotenv.config({ path: path.join(__dirname, "..", ".env") });
-
-
 // Configuration for LM Studio (from .env)
 const LM_HOST = process.env.LM_HOST || "localhost";
 const LM_PORT = process.env.LM_PORT || "1234";
+const LM_BASE_URL = `http://${LM_HOST}:${LM_PORT}`;
 const LM_API_TOKEN = process.env.LM_API_TOKEN || "";
 const LM_PREFERRED_DEVICE = process.env.LM_PREFERRED_DEVICE || "";
-const LM_BASE_URL = `http://${LM_HOST}:${LM_PORT}`;
+
+// Background Task Registry for Async Operations
+const backgroundTasks = new Map();
+
+/**
+ * UUID Helper for Task IDs
+ */
+function generateTaskId() {
+  return "task_" + Math.random().toString(36).substring(2, 11);
+}
 
 const server = new Server(
   {
@@ -76,6 +82,30 @@ server.setRequestHandler(ListToolsRequestSchema, async () => {
             stop: { type: "array", items: { type: "string" }, description: "Optional: Stop sequences." },
           },
           required: ["prompt"],
+        },
+      },
+      {
+        name: "analyze_local_image_async",
+        description: "Async Vision: Submits a background task for image analysis. Returns a task_id immediately to avoid MCP timeouts.",
+        inputSchema: {
+          type: "object",
+          properties: {
+            image_path: { type: "string", description: "Absolute path to the image." },
+            prompt: { type: "string", description: "What to ask about the image." },
+            model: { type: "string" },
+          },
+          required: ["image_path", "prompt"],
+        },
+      },
+      {
+        name: "get_bridge_task_status",
+        description: "Check progress/result of an asynchronous background task.",
+        inputSchema: {
+          type: "object",
+          properties: {
+            task_id: { type: "string", description: "ID returned by analyze_local_image_async." },
+          },
+          required: ["task_id"],
         },
       },
       {
@@ -176,7 +206,7 @@ server.setRequestHandler(CallToolRequestSchema, async (request) => {
           const mimeType = ext === "jpg" ? "jpeg" : ext;
           const dataUrl = `data:image/${mimeType};base64,${imgData.toString("base64")}`;
           userContent.push({ type: "image", data_url: dataUrl });
-          userContent.push({ type: "message", content: prompt });
+          userContent.push({ type: "text", content: prompt });
         } else {
           userContent = prompt;
         }
@@ -215,12 +245,66 @@ server.setRequestHandler(CallToolRequestSchema, async (request) => {
           model: model || undefined,
           input: [
             { type: "image", data_url: dataUrl },
-            { type: "message", content: prompt }
+            { type: "text", content: prompt }
           ],
         }, { headers: authHeaders });
 
         const responseText = response.data.output.find(o => o.type === "message")?.content || "No analysis output.";
         return { content: [{ type: "text", text: responseText }] };
+      }
+
+      case "analyze_local_image_async": {
+        const { image_path, prompt, model } = args;
+        const taskId = generateTaskId();
+
+        // Register task immediately
+        backgroundTasks.set(taskId, { status: "pending", createdAt: new Date() });
+
+        // Run analysis in background (do NOT await)
+        (async () => {
+          try {
+            const imgData = await fs.readFile(image_path);
+            const dataUrl = `data:image/jpeg;base64,${imgData.toString("base64")}`;
+            
+            const response = await axios.post(`${LM_BASE_URL}/api/v1/chat`, {
+              model: model || undefined,
+              input: [
+                { type: "image", data_url: dataUrl },
+                { type: "text", content: prompt }
+              ],
+            }, { headers: authHeaders, timeout: 600000 }); // 10 min timeout for background tasks
+
+            const content = response.data.output.find(o => o.type === "message")?.content || "Empty response.";
+            backgroundTasks.set(taskId, { status: "completed", result: content, completedAt: new Date() });
+          } catch (error) {
+            const msg = error.response?.data?.error?.message || error.message;
+            backgroundTasks.set(taskId, { status: "failed", error: msg, failedAt: new Date() });
+          }
+        })();
+
+        return { 
+          content: [{ 
+            type: "text", 
+            text: `Background task started successfully. Use get_bridge_task_status with task_id: ${taskId} to retrieve results.` 
+          }] 
+        };
+      }
+
+      case "get_bridge_task_status": {
+        const { task_id } = args;
+        const task = backgroundTasks.get(task_id);
+
+        if (!task) {
+          return { content: [{ type: "text", text: "Task ID not found." }], isError: true };
+        }
+
+        if (task.status === "pending") {
+          return { content: [{ type: "text", text: `Status: Pending. Task was started at ${task.createdAt.toLocaleTimeString()}.` }] };
+        } else if (task.status === "completed") {
+          return { content: [{ type: "text", text: `Status: Completed.\n\nResult:\n${task.result}` }] };
+        } else {
+          return { content: [{ type: "text", text: `Status: Failed.\n\nError:\n${task.error}` }] };
+        }
       }
 
       case "query_local_file": {
