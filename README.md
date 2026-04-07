@@ -10,7 +10,8 @@ This bridge acts as a translation layer between the MCP standard and LM Studio's
 
 ## Features
 
-- 💬 **Query Local LLMs**: Generate text directly using your hosted models.
+- 💬 **Query Local LLMs**: Standard text generation plus **Vision**, **JSON Mode**, and **Reasoning** control.
+- 🖼️ **Image Analysis**: Dedicated tool for privacy-focused local vision analysis.
 - 🔄 **Model Management**: Support for dynamically `loading` and `unloading` GGUF models via API.
 - 🧠 **Local Embeddings**: Convert text into vector embeddings using specialized models (e.g., Nomic Embed), ideal for local RAG implementations.
 - 📊 **Detailed Status**: Retrieve a comprehensive list of all loaded models and their technical details.
@@ -95,7 +96,8 @@ Add the bridge to your MCP settings:
 
 ## Available Tools
 
-- `query_local_llm`: Main tool for chat completions (supports `temperature`, `max_tokens`, etc.).
+- `query_local_llm`: Main tool for chat completions. Supports `image_path` (Vision), `json_mode` (Structured Output), and `reasoning` (Thinking Depth).
+- `analyze_local_image`: Vision-specific tool for local image analysis.
 - `query_local_file`: Read a local file and query the local model about it.
 - `search_local_docs`: Local semantic search across a directory.
 - `get_local_embeddings`: Convert strings into vector representations.
@@ -103,6 +105,37 @@ Add the bridge to your MCP settings:
 - `list_local_models`: List all loaded models.
 - `load_local_model`: Tell LM Studio to load a specific model ID into memory.
 - `unload_local_model`: Unload a model instance to free up VRAM.
+
+---
+
+## Advanced Examples
+
+### 1. 🖼️ Vision (Image Analysis)
+Use `analyze_local_image` with a model like `llama-3.2-11b-vision-instruct`.
+```json
+{
+  "image_path": "C:\\Users\\otwo\\Desktop\\screenshot.png",
+  "prompt": "What is visible in this screenshot? Describe the UI elements."
+}
+```
+
+### 2. 🧱 Structured Data (JSON Mode)
+Force the model to return valid JSON for automation.
+```json
+{
+  "prompt": "Extract names and dates from this text in JSON format",
+  "json_mode": true
+}
+```
+
+### 3. 🧠 Reasoning Control
+For models with chain-of-thought capabilities (e.g., DeepSeek-R1 or similar).
+```json
+{
+  "prompt": "Explain the quantum tunneling effect step by step.",
+  "reasoning": "high"
+}
+```
 
 ## License
 

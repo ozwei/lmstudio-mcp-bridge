@@ -57,17 +57,38 @@ server.setRequestHandler(ListToolsRequestSchema, async () => {
     tools: [
       {
         name: "query_local_llm",
-        description: "Query a local LLM hosted on LM Studio for text generation.",
+        description: "Standard: Query a local LLM for text generation. Supports Vision, JSON Mode, and Reasoning.",
         inputSchema: {
           type: "object",
           properties: {
             prompt: { type: "string" },
             systemPrompt: { type: "string", default: "You are a helpful assistant." },
+            model: { type: "string", description: "Optional: Load or use specific model ID." },
+            image_path: { type: "string", description: "Optional: Path to local image for Vision models." },
+            json_mode: { type: "boolean", default: false, description: "Optional: Force JSON output." },
+            reasoning: { 
+              type: "string", 
+              enum: ["off", "low", "medium", "high", "on"], 
+              description: "Optional: Control reasoning depth." 
+            },
             temperature: { type: "number", default: 0.7 },
             max_tokens: { type: "number", default: 2048 },
-            model: { type: "string" },
+            stop: { type: "array", items: { type: "string" }, description: "Optional: Stop sequences." },
           },
           required: ["prompt"],
+        },
+      },
+      {
+        name: "analyze_local_image",
+        description: "Vision: Privacy-focused image analysis using local vision models (Llava, Moondream, etc).",
+        inputSchema: {
+          type: "object",
+          properties: {
+            image_path: { type: "string", description: "Absolute path to the image." },
+            prompt: { type: "string", description: "What to ask about the image." },
+            model: { type: "string" },
+          },
+          required: ["image_path", "prompt"],
         },
       },
       {
@@ -144,17 +165,62 @@ server.setRequestHandler(CallToolRequestSchema, async (request) => {
   try {
     switch (name) {
       case "query_local_llm": {
-        const { prompt, systemPrompt, temperature, max_tokens, model } = args;
-        const response = await axios.post(`${LM_BASE_URL}/v1/chat/completions`, {
+        const { prompt, systemPrompt, temperature, max_tokens, model, image_path, json_mode, reasoning, stop } = args;
+        
+        const messages = [{ role: "system", content: systemPrompt }];
+        
+        let userContent = [];
+        if (image_path) {
+          const imgData = await fs.readFile(image_path);
+          const ext = path.extname(image_path).slice(1).toLowerCase();
+          const mimeType = ext === "jpg" ? "jpeg" : ext;
+          const dataUrl = `data:image/${mimeType};base64,${imgData.toString("base64")}`;
+          userContent.push({ type: "image", data_url: dataUrl });
+          userContent.push({ type: "message", content: prompt });
+        } else {
+          userContent = prompt;
+        }
+
+        const payload = {
           model: model || undefined,
-          messages: [
-            { role: "system", content: systemPrompt },
-            { role: "user", content: prompt },
-          ],
+          input: userContent,
+          system_prompt: systemPrompt,
           temperature,
-          max_tokens,
+          max_output_tokens: max_tokens,
+          reasoning: reasoning || undefined,
+          stream: false,
+        };
+
+        if (json_mode) {
+           payload.response_format = { type: "json_object" };
+        }
+        if (stop) {
+           payload.stop = stop;
+        }
+
+        // Use /api/v1/chat for extended feature support
+        const response = await axios.post(`${LM_BASE_URL}/api/v1/chat`, payload, { headers: authHeaders });
+        
+        // Extract content from v1/chat schema
+        const responseText = response.data.output.find(o => o.type === "message")?.content || "No message output.";
+        return { content: [{ type: "text", text: responseText }] };
+      }
+
+      case "analyze_local_image": {
+        const { image_path, prompt, model } = args;
+        const imgData = await fs.readFile(image_path);
+        const dataUrl = `data:image/jpeg;base64,${imgData.toString("base64")}`;
+
+        const response = await axios.post(`${LM_BASE_URL}/api/v1/chat`, {
+          model: model || undefined,
+          input: [
+            { type: "image", data_url: dataUrl },
+            { type: "message", content: prompt }
+          ],
         }, { headers: authHeaders });
-        return { content: [{ type: "text", text: response.data.choices[0].message.content }] };
+
+        const responseText = response.data.output.find(o => o.type === "message")?.content || "No analysis output.";
+        return { content: [{ type: "text", text: responseText }] };
       }
 
       case "query_local_file": {
