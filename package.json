@@ -1,9 +1,10 @@
 {
   "name": "lmstudio-mcp-bridge",
-  "version": "1.2.0",
+  "version": "1.6.5",
   "type": "module",
   "main": "src/index.js",
   "scripts": {
+    "start": "node src/index.js",
     "test": "echo \"Error: no test specified\" && exit 1"
   },
   "keywords": [],
