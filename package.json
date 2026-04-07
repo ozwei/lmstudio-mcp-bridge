@@ -9,7 +9,6 @@
   },
   "keywords": [],
   "author": "ozwei",
-  "email": "ozwei@users.noreply.github.com",
   "license": "ISC",
   "description": "A Model Context Protocol bridge for LM Studio",
   "dependencies": {
