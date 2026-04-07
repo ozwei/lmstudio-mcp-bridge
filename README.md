@@ -58,7 +58,7 @@ npm install
 Create a `.env` file in the root directory (you can copy from `.env.example`) and fill in your LM Studio details:
 
 ```env
-LM_HOST=192.168.1.131
+LM_HOST=localhost
 LM_PORT=1234
 LM_API_TOKEN=your_token_here
 ```
@@ -66,7 +66,19 @@ LM_API_TOKEN=your_token_here
 > [!NOTE]
 > The `.env` file is excluded from Git to protect your sensitive configuration.
 
-### 3. Usage in Antigravity
+### 3. Architecture: Using with LM Link
+
+If you are using **LM Link** to connect multiple devices:
+
+1. **Setup**: Run LM Studio on both your "Server" (powerful machine) and "Client" (where you are coding).
+2. **Connectivity**: Enable LM Link to share the server's models with the client.
+3. **Bridge Placement**: Run the `lmstudio-mcp-bridge` on your **Client** machine.
+4. **Proxying**: Set `LM_HOST=localhost` in your `.env`. The bridge will talk to your local client, which will transparently route requests to the remote models via the secure link.
+
+**Data Flow:**
+`IDE (Antigravity/Claude Code) -> MCP Bridge -> Local LM Studio Client -> LM Link -> Remote LM Studio Server`
+
+### 4. Usage in Antigravity
 
 Add the bridge to your MCP settings:
 

@@ -9,13 +9,21 @@ import fs from "fs/promises";
 import path from "path";
 import os from "os";
 
-// Load environment variables
-import "dotenv/config";
+import { fileURLToPath } from "url";
+import dotenv from "dotenv";
+
+const __filename = fileURLToPath(import.meta.url);
+const __dirname = path.dirname(__filename);
+
+// Load environment variables from the root directory
+dotenv.config({ path: path.join(__dirname, "..", ".env") });
+
 
 // Configuration for LM Studio (from .env)
 const LM_HOST = process.env.LM_HOST || "localhost";
 const LM_PORT = process.env.LM_PORT || "1234";
 const LM_API_TOKEN = process.env.LM_API_TOKEN || "";
+const LM_PREFERRED_DEVICE = process.env.LM_PREFERRED_DEVICE || "";
 const LM_BASE_URL = `http://${LM_HOST}:${LM_PORT}`;
 
 const server = new Server(
@@ -115,7 +123,7 @@ server.setRequestHandler(ListToolsRequestSchema, async () => {
       },
       {
         name: "list_local_models",
-        description: "List loaded and available models.",
+        description: "List loaded and available models (including those available via LM Link).",
         inputSchema: {
           type: "object",
           properties: { detailed: { type: "boolean", default: false } },
@@ -201,7 +209,14 @@ server.setRequestHandler(CallToolRequestSchema, async (request) => {
       case "get_system_health": {
         const freeMem = os.freemem() / 1024 / 1024 / 1024;
         const totalMem = os.totalmem() / 1024 / 1024 / 1024;
-        return { content: [{ type: "text", text: `Memory: ${freeMem.toFixed(2)}GB free / ${totalMem.toFixed(2)}GB total\nCPUs: ${os.cpus().length}\nPlatform: ${os.platform()}` }] };
+        const arch = os.platform();
+        let statusText = `Bridge Machine Memory: ${freeMem.toFixed(2)}GB free / ${totalMem.toFixed(2)}GB total\nCPUs: ${os.cpus().length}\nPlatform: ${arch}`;
+        
+        if (LM_HOST !== "localhost" && LM_HOST !== "127.0.0.1") {
+          statusText += `\nNote: Operating in Remote/LM Link Mode (Target: ${LM_HOST})`;
+        }
+        
+        return { content: [{ type: "text", text: statusText }] };
       }
 
       case "list_local_models": {
