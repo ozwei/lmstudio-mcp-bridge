@@ -160,8 +160,11 @@ server.setRequestHandler(ListToolsRequestSchema, async () => {
         inputSchema: {
           type: "object",
           properties: {
-            input: { type: "string" },
-            model: { type: "string" },
+            input: { 
+              anyOf: [{ type: "string" }, { type: "array", items: { type: "string" } }],
+              description: "Text to embed (string or array of strings)"
+            },
+            model: { type: "string", description: "Optional: Embedding model ID. Auto-selected if omitted." },
           },
           required: ["input"],
         },
@@ -450,12 +453,26 @@ server.setRequestHandler(CallToolRequestSchema, async (request) => {
       }
 
       case "get_local_embeddings": {
+        let { input, model } = args;
+        
+        if (!model) {
+            const modelsRes = await fetch(`${LM_BASE_URL}/v1/models`, { headers: authHeaders });
+            const modelsData = await modelsRes.json();
+            // Prioritize models with 'embed' in the name
+            const embedModel = modelsData.data.find(m => m.id.toLowerCase().includes("embed")) || modelsData.data[0];
+            if (embedModel) {
+                model = embedModel.id;
+                await logDebug(`[BRIDGE] No embedding model specified. Auto-selected: ${model}`);
+            }
+        }
+
         const response = await fetch(`${LM_BASE_URL}/v1/embeddings`, {
           method: "POST",
           headers: authHeaders,
-          body: JSON.stringify({ input: args.input, model: args.model })
+          body: JSON.stringify({ input, model })
         });
         const result = await response.json();
+        if (result.error) throw new Error(JSON.stringify(result.error));
         return { content: [{ type: "text", text: JSON.stringify(result.data, null, 2) }] };
       }
 
@@ -466,8 +483,16 @@ server.setRequestHandler(CallToolRequestSchema, async (request) => {
         if (filteredFiles.length === 0) return { content: [{ type: "text", text: "No files found." }] };
 
         // 1. Get query embedding
+        let embedModel = "";
+        const modelsRes = await fetch(`${LM_BASE_URL}/v1/models`, { headers: authHeaders });
+        const modelsData = await modelsRes.json();
+        const foundModel = modelsData.data.find(m => m.id.toLowerCase().includes("embed")) || modelsData.data[0];
+        if (foundModel) embedModel = foundModel.id;
+
         const qRes = await fetch(`${LM_BASE_URL}/v1/embeddings`, {
-          method: "POST", headers: authHeaders, body: JSON.stringify({ input: query })
+          method: "POST", 
+          headers: authHeaders, 
+          body: JSON.stringify({ input: query, model: embedModel || undefined })
         });
         const qData = await qRes.json();
         const qVec = qData.data[0].embedding;
@@ -477,7 +502,9 @@ server.setRequestHandler(CallToolRequestSchema, async (request) => {
           const fullPath = path.join(directory_path, file);
           const text = await fs.readFile(fullPath, "utf-8");
           const fRes = await fetch(`${LM_BASE_URL}/v1/embeddings`, {
-            method: "POST", headers: authHeaders, body: JSON.stringify({ input: text.slice(0, 1000) })
+            method: "POST", 
+            headers: authHeaders, 
+            body: JSON.stringify({ input: text.slice(0, 1000), model: embedModel || undefined })
           });
           const fData = await fRes.json();
           const score = cosineSimilarity(qVec, fData.data[0].embedding);

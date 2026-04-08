@@ -21,7 +21,7 @@ This bridge acts as a translation layer between the MCP standard and LM Studio's
 
 ---
 
-## Available Tools (v1.8.0)
+## Available Tools (v1.8.1)
 
 The bridge provides a comprehensive suite of **16 tools** categorized for various AI workflows:
 
@@ -33,8 +33,8 @@ The bridge provides a comprehensive suite of **16 tools** categorized for variou
 - `get_bridge_task_status`: Check progress of asynchronous vision tasks.
 
 ### 📁 File & Knowledge (RAG)
-- `search_local_docs`: Semantic vector search across local document directories.
-- `get_local_embeddings`: Generate text embeddings for local indexing.
+- `search_local_docs`: Semantic vector search across local document directories. Now uses auto-model selection.
+- `get_local_embeddings`: Generate text embeddings for local indexing. Supports batch arrays and auto-model selection.
 - `query_local_file`: Read a file and ask questions about its specific content.
 - `list_files_in_directory`: Browse local file systems.
 - `read_file_content`: Fetch raw content from local files.
