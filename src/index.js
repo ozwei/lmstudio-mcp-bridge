@@ -637,7 +637,7 @@ server.setRequestHandler(CallToolRequestSchema, async (request) => {
 });
 
 async function main() {
-  console.error("LM Studio Bridge 1.6.4.2 starting...");
+  console.error(`LM Studio Bridge ${packageJson.version} starting...`);
   const transport = new StdioServerTransport();
   await server.connect(transport);
   console.error("LM Studio Bridge connected to Stdio.");

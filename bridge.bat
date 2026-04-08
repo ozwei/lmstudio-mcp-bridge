@@ -17,7 +17,10 @@ if "%1"=="restart" (
 )
 
 :start
-echo [BRIDGE] LM Studio Bridge (v1.9.0) starting...
+for /f "tokens=2 delims=:," %%a in ('findstr "version" package.json') do set VERSION=%%a
+set VERSION=%VERSION:"=%
+set VERSION=%VERSION: =%
+echo [BRIDGE] LM Studio Bridge (v%VERSION%) starting...
 echo [BRIDGE] Mode: Absolute Path (Conda Env: mcp-bridge)
 "C:\Users\otwo\.conda\envs\mcp-bridge\node.exe" src/index.js %*
 endlocal
