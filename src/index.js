@@ -307,7 +307,7 @@ server.setRequestHandler(CallToolRequestSchema, async (request) => {
           };
         }
 
-        await logDebug(`[BRIDGE] Sending request to ${model || 'default model'}...`);
+        await logDebug(`[BRIDGE] Sending request to ${targetModel || 'default model'}...`);
         const response = await fetch(`${LM_BASE_URL}/v1/chat/completions`, {
           method: "POST",
           headers: authHeaders,
@@ -316,7 +316,9 @@ server.setRequestHandler(CallToolRequestSchema, async (request) => {
         
         const result = await response.json();
         if (result.error) throw new Error(JSON.stringify(result.error));
-        return { content: [{ type: "text", text: result.choices?.[0]?.message?.content || "" }] };
+        const text = result.choices?.[0]?.message?.content || "";
+        const attribution = `\n\n[Model: ${result.model}]`;
+        return { content: [{ type: "text", text: text + attribution }] };
       }
 
       case "query_local_llm_stateful": {
@@ -370,7 +372,7 @@ server.setRequestHandler(CallToolRequestSchema, async (request) => {
         return { 
           content: [
             { type: "text", text: text || "No text content returned." },
-            { type: "text", text: `\n\n[Response ID: ${result.id}]` }
+            { type: "text", text: `\n\n[Response ID: ${result.id}] [Model: ${result.model}]` }
           ] 
         };
       }
@@ -396,7 +398,9 @@ server.setRequestHandler(CallToolRequestSchema, async (request) => {
 
         const result = await response.json();
         if (result.error) throw new Error(JSON.stringify(result.error));
-        return { content: [{ type: "text", text: result.choices?.[0]?.message?.content || "" }] };
+        const text = result.choices?.[0]?.message?.content || "";
+        const attribution = `\n\n[Model: ${result.model}]`;
+        return { content: [{ type: "text", text: text + attribution }] };
       }
 
       case "query_local_file": {
