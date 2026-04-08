@@ -4,7 +4,8 @@ import {
   CallToolRequestSchema,
   ListToolsRequestSchema,
 } from "@modelcontextprotocol/sdk/types.js";
-import fs from "fs/promises";
+import { readFileSync } from "fs";
+import fs, { readFile, appendFile, readdir } from "fs/promises";
 import path from "path";
 import os from "os";
 
@@ -16,6 +17,8 @@ const __dirname = path.dirname(__filename);
 
 // Global Error Handlers to prevent bridge crashes (EOF)
 const logFile = path.join(__dirname, "../bridge_debug.log");
+const packageJson = JSON.parse(readFileSync(path.join(__dirname, "../package.json"), "utf8"));
+
 async function logDebug(msg) {
   const timestamp = new Date().toISOString();
   await fs.appendFile(logFile, `[${timestamp}] ${msg}\n`).catch(() => {});
@@ -43,7 +46,7 @@ const LM_API_TOKEN = process.env.LM_API_TOKEN || "";
 const server = new Server(
   {
     name: "lmstudio-bridge",
-    version: "1.7.0",
+    version: packageJson.version || "1.8.1",
   },
   {
     capabilities: {

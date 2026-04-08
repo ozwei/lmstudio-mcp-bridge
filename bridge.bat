@@ -17,7 +17,7 @@ if "%1"=="restart" (
 )
 
 :start
-echo [BRIDGE] LM Studio Bridge (v1.6.4) starting...
+echo [BRIDGE] LM Studio Bridge (v1.8.1) starting...
 echo [BRIDGE] Mode: Absolute Path (Conda Env: mcp-bridge)
 "C:\Users\otwo\.conda\envs\mcp-bridge\node.exe" src/index.js %*
 endlocal
