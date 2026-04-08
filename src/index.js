@@ -270,8 +270,18 @@ server.setRequestHandler(CallToolRequestSchema, async (request) => {
           messages.push({ role: "user", content: prompt });
         }
 
+        let targetModel = model;
+        if (!targetModel) {
+            const modelsRes = await fetch(`${LM_BASE_URL}/v1/models`, { headers: authHeaders });
+            const modelsData = await modelsRes.json();
+            if (modelsData.data && modelsData.data.length > 0) {
+                targetModel = modelsData.data[0].id;
+                await logDebug(`[BRIDGE] No model specified. Auto-selected: ${targetModel}`);
+            }
+        }
+
         const payload = {
-          model: model || undefined,
+          model: targetModel,
           messages,
           temperature: temperature || 0.7,
           max_tokens: max_tokens || 4096,
@@ -310,10 +320,19 @@ server.setRequestHandler(CallToolRequestSchema, async (request) => {
       }
 
       case "query_local_llm_stateful": {
-        const { input, previous_response_id, reasoning_effort, model, max_tokens } = args;
+        let { input, previous_response_id, reasoning_effort, model, max_tokens } = args;
         
+        if (!model) {
+            const modelsRes = await fetch(`${LM_BASE_URL}/v1/models`, { headers: authHeaders });
+            const modelsData = await modelsRes.json();
+            if (modelsData.data && modelsData.data.length > 0) {
+                model = modelsData.data[0].id;
+                await logDebug(`[BRIDGE] No model specified (stateful). Auto-selected: ${model}`);
+            }
+        }
+
         const payload = {
-          model: model || undefined,
+          model: model,
           input,
           previous_response_id,
           max_tokens: max_tokens || 4096,
