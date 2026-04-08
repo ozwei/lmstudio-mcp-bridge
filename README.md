@@ -14,18 +14,20 @@ This bridge acts as a translation layer between the MCP standard and LM Studio's
 - 📂 **Privacy-First RAG**: Semantic search across local directories using local embeddings.
 - 📑 **Direct File Interaction**: Read, analyze, and query local files directly.
 - 🏗️ **Model Orchestration**: Programmatically load and unload models to manage hardware resources.
+- 🤖 **Auto-Model Selection**: Automatically selects the first available loaded model if none is specified.
+- 🏷️ **Model Attribution**: Every response clearly identifies which model generated the answer.
 - ⚡ **Async Processing**: Offload long-running vision tasks to the background.
 - 🏥 **System Monitoring**: Check CPU/Memory health and bridge configuration.
 
 ---
 
-## Available Tools (v1.7.0)
+## Available Tools (v1.7.1)
 
 The bridge provides a comprehensive suite of **16 tools** categorized for various AI workflows:
 
 ### 🗨️ Core Interaction
-- `query_local_llm`: Standard text generation. Supports `image_path`, `json_mode`, and `json_schema`.
-- `query_local_llm_stateful`: Advanced stateful query using `/v1/responses`. Supports `previous_response_id` and `reasoning_effort`.
+- `query_local_llm`: Standard text generation. Supports `image_path`, `json_mode`, and `json_schema`. (Auto-selects model if omitted).
+- `query_local_llm_stateful`: Advanced stateful query using `/v1/responses`. Supports `previous_response_id` and `reasoning_effort`. (Auto-selects model if omitted).
 - `analyze_local_image`: Direct image analysis using local vision models.
 - `analyze_local_image_async`: Start background image analysis (returns a Task ID).
 - `get_bridge_task_status`: Check progress of asynchronous vision tasks.
