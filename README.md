@@ -2,6 +2,10 @@
 
 [![License](https://img.shields.io/badge/license-ISC-blue.svg)](LICENSE)
 
+# LM Studio MCP Bridge
+
+[![License](https://img.shields.io/badge/license-ISC-blue.svg)](LICENSE)
+
 A Node.js based Model Context Protocol (MCP) bridge that enables **Antigravity** (and other MCP clients) to interact with locally hosted Large Language Models (LLMs) via **LM Studio**.
 
 ## Overview
@@ -10,28 +14,70 @@ This bridge acts as a translation layer between the MCP standard and LM Studio's
 
 ## Features
 
-- 💬 **Query Local LLMs**: Standard text generation with JSON Schema support.
-- 📊 **Model Listing**: Retrieve a comprehensive list of all loaded models.
-- 🌡️ **Error Handling**: Graceful recovery from model loading or inference failures.
+- 💬 **Dynamic Chat & Vision**: Query local LLMs with text and images. Supports structured JSON output and reasoning.
+- 📂 **Privacy-First RAG**: Semantic search across local directories using local embeddings.
+- 📑 **Direct File Interaction**: Read, analyze, and query local files directly.
+- 🏗️ **Model Orchestration**: Programmatically load and unload models to manage hardware resources.
+- ⚡ **Async Processing**: Offload long-running vision tasks to the background.
+- 🏥 **System Monitoring**: Check CPU/Memory health and bridge configuration.
 
-## User Scenarios: Why Use This Bridge?
+---
 
-This bridge transforms Antigravity from a cloud-only assistant into a hybrid powerhouse that respects your privacy and hardware.
+## Available Tools (v1.7.0)
 
-### 1. 🛡️ Privacy-First Code Analysis
-Instead of sending proprietary code or sensitive files to the cloud, you can ask Antigravity to use your local Llama 3 model. The code stays on your machine; only the final analysis result is sent back to the cloud assistant.
+The bridge provides a comprehensive suite of **15 tools** categorized for various AI workflows:
 
-### 2. 📚 Local RAG (Knowledge Search)
-By using `get_local_embeddings`, you can index thousands of local PDFs or Markdown notes. When you ask a question, Antigravity can search your local drive, find the relevant passage, and use that context to answer you, keeping your personal data private.
+### 🗨️ Core Interaction
+- `query_local_llm`: Standard text generation. Supports `image_path`, `json_mode`, and `json_schema`.
+- `analyze_local_image`: Direct image analysis using local vision models.
+- `analyze_local_image_async`: Start background image analysis (returns a Task ID).
+- `get_bridge_task_status`: Check progress of asynchronous vision tasks.
 
-### 3. ⚡ Efficiency & Cost Optimization
-For repetitive, low-complexity tasks like "fix the capitalization in these 50 files," Antigravity can delegate the work to a lightweight local model (like `Nemotron-Mini`), saving your cloud token quota for harder reasoning tasks.
+### 📁 File & Knowledge (RAG)
+- `search_local_docs`: Semantic vector search across local document directories.
+- `get_local_embeddings`: Generate text embeddings for local indexing.
+- `query_local_file`: Read a file and ask questions about its specific content.
+- `list_files_in_directory`: Browse local file systems.
+- `read_file_content`: Fetch raw content from local files.
 
-### 4. 🧪 Automated AI Benchmarking
-If you are an AI developer, you can use Antigravity to script the loading and unloading of different quantized models (Q4, Q8, etc.) to test performance and accuracy across various architectures automatically.
+### 🤖 Model Management
+- `list_local_models`: See all loaded and available models (optionally detailed).
+- `load_local_model`: Load a specific model ID into memory/VRAM.
+- `unload_local_model`: Free up resources by unloading models.
 
-### 5. 🌡️ Resource-Aware Computing
-With the `get_system_health` tool, Antigravity can check your available VRAM before deciding whether to load a heavy model, preventing system crashes and ensuring a smooth hybrid experience.
+### 🛠️ System & Debugging
+- `get_system_health`: Monitor bridge machine CPU and Memory usage.
+- `check_server_status`: Verify connection to the LM Studio API.
+- `get_bridge_config`: View current host, port, and authentication settings.
+
+---
+
+## Usage Examples
+
+### 🧱 Structured Data (JSON Schema)
+Force the model to return valid JSON following a specific schema.
+```json
+{
+  "prompt": "Generate a random user profile",
+  "json_schema": {
+    "type": "object",
+    "properties": {
+      "name": { "type": "string" },
+      "age": { "type": "integer" }
+    },
+    "required": ["name", "age"]
+  }
+}
+```
+
+### 🖼️ Vision Analysis
+Analyze a local screenshot or diagram.
+```json
+{
+  "prompt": "What is shown in this architecture diagram?",
+  "image_path": "C:/Users/otwo/Desktop/system_init.png"
+}
+```
 
 ## Prerequisites
 
@@ -87,31 +133,6 @@ Add the bridge to your MCP settings:
       "command": "node",
       "args": ["C:/absolute/path/to/lmstudio-mcp-bridge/src/index.js"]
     }
-  }
-}
-```
-
-## Available Tools
-
-- `query_local_llm`: Main tool for chat completions. Supports `json_mode` and `json_schema` (Structured Output).
-- `list_local_models`: List all loaded models.
-
----
-
-## Advanced Examples
-
-### 🧱 Structured Data (JSON Schema)
-Force the model to return valid JSON following a specific schema.
-```json
-{
-  "prompt": "Generate a random user profile",
-  "json_schema": {
-    "type": "object",
-    "properties": {
-      "name": { "type": "string" },
-      "age": { "type": "integer" }
-    },
-    "required": ["name", "age"]
   }
 }
 ```

@@ -1,0 +1,322 @@
+﻿import { Server } from "@modelcontextprotocol/sdk/server/index.js";
+import { StdioServerTransport } from "@modelcontextprotocol/sdk/server/stdio.js";
+import {
+  CallToolRequestSchema,
+  ListToolsRequestSchema,
+} from "@modelcontextprotocol/sdk/types.js";
+import axios from "axios";
+import fs from "fs/promises";
+import path from "path";
+import os from "os";
+
+import { fileURLToPath } from "url";
+import dotenv from "dotenv";
+
+const __filename = fileURLToPath(import.meta.url);
+const __dirname = path.dirname(__filename);
+
+// Load environment variables from the root directory
+dotenv.config({ path: path.join(__dirname, "..", ".env") });
+
+
+// Configuration for LM Studio (from .env)
+const LM_HOST = process.env.LM_HOST || "localhost";
+const LM_PORT = process.env.LM_PORT || "1234";
+const LM_API_TOKEN = process.env.LM_API_TOKEN || "";
+const LM_PREFERRED_DEVICE = process.env.LM_PREFERRED_DEVICE || "";
+const LM_BASE_URL = `http://${LM_HOST}:${LM_PORT}`;
+
+const server = new Server(
+  {
+    name: "lmstudio-bridge",
+    version: "1.2.0",
+  },
+  {
+    capabilities: {
+      tools: {},
+    },
+  }
+);
+
+/**
+ * Utility for Cosine Similarity (for search_local_docs)
+ */
+function dotProduct(a, b) {
+  return a.reduce((sum, val, i) => sum + val * b[i], 0);
+}
+function magnitude(a) {
+  return Math.sqrt(a.reduce((sum, val) => sum + val * val, 0));
+}
+function cosineSimilarity(a, b) {
+  return dotProduct(a, b) / (magnitude(a) * magnitude(b));
+}
+
+// Define tools
+server.setRequestHandler(ListToolsRequestSchema, async () => {
+  return {
+    tools: [
+      {
+        name: "query_local_llm",
+        description: "Standard: Query a local LLM for text generation. Supports Vision, JSON Mode, and Reasoning.",
+        inputSchema: {
+          type: "object",
+          properties: {
+            prompt: { type: "string" },
+            systemPrompt: { type: "string", default: "You are a helpful assistant." },
+            model: { type: "string", description: "Optional: Load or use specific model ID." },
+            image_path: { type: "string", description: "Optional: Path to local image for Vision models." },
+            json_mode: { type: "boolean", default: false, description: "Optional: Force JSON output." },
+            reasoning: { 
+              type: "string", 
+              enum: ["off", "low", "medium", "high", "on"], 
+              description: "Optional: Control reasoning depth." 
+            },
+            temperature: { type: "number", default: 0.7 },
+            max_tokens: { type: "number", default: 2048 },
+            stop: { type: "array", items: { type: "string" }, description: "Optional: Stop sequences." },
+          },
+          required: ["prompt"],
+        },
+      },
+      {
+        name: "analyze_local_image",
+        description: "Vision: Privacy-focused image analysis using local vision models (Llava, Moondream, etc).",
+        inputSchema: {
+          type: "object",
+          properties: {
+            image_path: { type: "string", description: "Absolute path to the image." },
+            prompt: { type: "string", description: "What to ask about the image." },
+            model: { type: "string" },
+          },
+          required: ["image_path", "prompt"],
+        },
+      },
+      {
+        name: "query_local_file",
+        description: "Privacy-First: Reads a local file and queries the local LLM about its contents.",
+        inputSchema: {
+          type: "object",
+          properties: {
+            file_path: { type: "string", description: "Absolute path to the file." },
+            prompt: { type: "string", description: "Your question about the file." },
+          },
+          required: ["file_path", "prompt"],
+        },
+      },
+      {
+        name: "search_local_docs",
+        description: "Local RAG: Performs semantic search across a directory using local embeddings.",
+        inputSchema: {
+          type: "object",
+          properties: {
+            directory_path: { type: "string", description: "Directory to search." },
+            query: { type: "string", description: "Search query." },
+            extension: { type: "string", default: ".md", description: "Filter by extension." },
+          },
+          required: ["directory_path", "query"],
+        },
+      },
+      {
+        name: "get_local_embeddings",
+        description: "Generate vector embeddings using a local model.",
+        inputSchema: {
+          type: "object",
+          properties: {
+            input: { type: "string" },
+            model: { type: "string" },
+          },
+          required: ["input"],
+        },
+      },
+      {
+        name: "load_local_model",
+        description: "Load a specific model into LM Studio memory.",
+        inputSchema: {
+          type: "object",
+          properties: { model_id: { type: "string" } },
+          required: ["model_id"],
+        },
+      },
+      {
+        name: "get_system_health",
+        description: "Check local system resource usage (CPU/Memory).",
+        inputSchema: { type: "object", properties: {} },
+      },
+      {
+        name: "list_local_models",
+        description: "List loaded and available models (including those available via LM Link).",
+        inputSchema: {
+          type: "object",
+          properties: { detailed: { type: "boolean", default: false } },
+        },
+      },
+    ],
+  };
+});
+
+// Implement tool logic
+server.setRequestHandler(CallToolRequestSchema, async (request) => {
+  const { name, arguments: args } = request.params;
+  const authHeaders = {
+    Authorization: `Bearer ${LM_API_TOKEN}`,
+    "Content-Type": "application/json",
+  };
+
+  try {
+    switch (name) {
+      case "query_local_llm": {
+        const { prompt, systemPrompt, temperature, max_tokens, model, image_path, json_mode, reasoning, stop } = args;
+        
+        const messages = [{ role: "system", content: systemPrompt }];
+        
+        let userContent = [];
+        if (image_path) {
+          const imgData = await fs.readFile(image_path);
+          const ext = path.extname(image_path).slice(1).toLowerCase();
+          const mimeType = ext === "jpg" ? "jpeg" : ext;
+          const dataUrl = `data:image/${mimeType};base64,${imgData.toString("base64")}`;
+          userContent.push({ type: "image", data_url: dataUrl });
+          userContent.push({ type: "message", content: prompt });
+        } else {
+          userContent = prompt;
+        }
+
+        const payload = {
+          model: model || undefined,
+          input: userContent,
+          system_prompt: systemPrompt,
+          temperature,
+          max_output_tokens: max_tokens,
+          reasoning: reasoning || undefined,
+          stream: false,
+        };
+
+        if (json_mode) {
+           payload.response_format = { type: "json_object" };
+        }
+        if (stop) {
+           payload.stop = stop;
+        }
+
+        // Use /api/v1/chat for extended feature support
+        const response = await axios.post(`${LM_BASE_URL}/api/v1/chat`, payload, { headers: authHeaders });
+        
+        // Extract content from v1/chat schema
+        const responseText = response.data.output.find(o => o.type === "message")?.content || "No message output.";
+        return { content: [{ type: "text", text: responseText }] };
+      }
+
+      case "analyze_local_image": {
+        const { image_path, prompt, model } = args;
+        const imgData = await fs.readFile(image_path);
+        const dataUrl = `data:image/jpeg;base64,${imgData.toString("base64")}`;
+
+        const response = await axios.post(`${LM_BASE_URL}/api/v1/chat`, {
+          model: model || undefined,
+          input: [
+            { type: "image", data_url: dataUrl },
+            { type: "message", content: prompt }
+          ],
+        }, { headers: authHeaders });
+
+        const responseText = response.data.output.find(o => o.type === "message")?.content || "No analysis output.";
+        return { content: [{ type: "text", text: responseText }] };
+      }
+
+      case "query_local_file": {
+        const { file_path, prompt } = args;
+        const content = await fs.readFile(file_path, "utf-8");
+        const response = await axios.post(`${LM_BASE_URL}/v1/chat/completions`, {
+          messages: [
+            { role: "system", content: "Analyze the provided file content carefully." },
+            { role: "user", content: `File Content:\n${content}\n\nQuestion: ${prompt}` },
+          ],
+        }, { headers: authHeaders });
+        return { content: [{ type: "text", text: response.data.choices[0].message.content }] };
+      }
+
+      case "get_local_embeddings": {
+        const response = await axios.post(`${LM_BASE_URL}/v1/embeddings`, {
+          input: args.input,
+          model: args.model,
+        }, { headers: authHeaders });
+        return { content: [{ type: "text", text: JSON.stringify(response.data.data, null, 2) }] };
+      }
+
+      case "search_local_docs": {
+        const { directory_path, query, extension } = args;
+        const files = await fs.readdir(directory_path);
+        const filteredFiles = files.filter(f => f.endsWith(extension));
+
+        if (filteredFiles.length === 0) return { content: [{ type: "text", text: "No matching files found." }] };
+
+        // 1. Get query embedding
+        const qRes = await axios.post(`${LM_BASE_URL}/v1/embeddings`, { input: query }, { headers: authHeaders });
+        const qVec = qRes.data.data[0].embedding;
+
+        let bestMatch = { score: -1, file: "", snippet: "" };
+
+        // 2. Scan and find best (Simplified: first 5 files only for performance)
+        for (const file of filteredFiles.slice(0, 5)) {
+          const fullPath = path.join(directory_path, file);
+          const text = await fs.readFile(fullPath, "utf-8");
+          const fRes = await axios.post(`${LM_BASE_URL}/v1/embeddings`, { input: text.slice(0, 1000) }, { headers: authHeaders });
+          const fVec = fRes.data.data[0].embedding;
+          const score = cosineSimilarity(qVec, fVec);
+          
+          if (score > bestMatch.score) {
+            bestMatch = { score, file, snippet: text.slice(0, 300) };
+          }
+        }
+
+        return { content: [{ type: "text", text: `Top Match: ${bestMatch.file} (Score: ${bestMatch.score.toFixed(4)})\n\nSnippet: ${bestMatch.snippet}...` }] };
+      }
+
+      case "get_system_health": {
+        const freeMem = os.freemem() / 1024 / 1024 / 1024;
+        const totalMem = os.totalmem() / 1024 / 1024 / 1024;
+        const arch = os.platform();
+        let statusText = `Bridge Machine Memory: ${freeMem.toFixed(2)}GB free / ${totalMem.toFixed(2)}GB total\nCPUs: ${os.cpus().length}\nPlatform: ${arch}`;
+        
+        if (LM_HOST !== "localhost" && LM_HOST !== "127.0.0.1") {
+          statusText += `\nNote: Operating in Remote/LM Link Mode (Target: ${LM_HOST})`;
+        }
+        
+        return { content: [{ type: "text", text: statusText }] };
+      }
+
+      case "list_local_models": {
+        const response = await axios.get(`${LM_BASE_URL}/v1/models`, { headers: authHeaders });
+        const content = args.detailed ? JSON.stringify(response.data.data, null, 2) : response.data.data.map(m => m.id).join("\n");
+        return { content: [{ type: "text", text: content }] };
+      }
+
+      case "load_local_model": {
+        const response = await axios.post(`${LM_BASE_URL}/api/v1/models/load`, { model_id: args.model_id }, { headers: authHeaders });
+        return { content: [{ type: "text", text: `Load request status: ${response.statusText}` }] };
+      }
+
+      case "unload_local_model": {
+        const response = await axios.post(`${LM_BASE_URL}/api/v1/models/unload`, { model_id: args.model_id }, { headers: authHeaders });
+        return { content: [{ type: "text", text: `Unload request status: ${response.statusText}` }] };
+      }
+
+      default:
+        throw new Error(`Tool not found: ${name}`);
+    }
+  } catch (error) {
+    const errorMsg = error.response?.data ? JSON.stringify(error.response.data, null, 2) : error.message;
+    return { content: [{ type: "text", text: `Error: ${errorMsg}` }], isError: true };
+  }
+});
+
+async function main() {
+  const transport = new StdioServerTransport();
+  await server.connect(transport);
+  console.error("LM Studio Bridge 1.2.0 starting...");
+}
+
+main().catch((error) => {
+  console.error("Fatal error:", error);
+  process.exit(1);
+});
