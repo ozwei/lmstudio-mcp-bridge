@@ -74,7 +74,7 @@ server.setRequestHandler(ListToolsRequestSchema, async () => {
     tools: [
       {
         name: "query_local_llm",
-        description: "Standard: Query a local LLM for text generation. Supports Vision, JSON Schema, and Reasoning.",
+        description: "Standard: Use this for STARTING a new conversation or one-off tasks. Supports Vision, JSON Schema, and Reasoning. Do not use this for follow-ups if you have a response ID.",
         inputSchema: {
           type: "object",
           properties: {
@@ -92,7 +92,7 @@ server.setRequestHandler(ListToolsRequestSchema, async () => {
       },
       {
         name: "query_local_llm_stateful",
-        description: "Advanced: Stateful query using the /v1/responses endpoint. Supports reasoning control and follow-ups via previous_response_id.",
+        description: "Follow-up: Use this ONLY for continuing an existing conversation when you have a `previous_response_id`. It is faster and preserves context server-side.",
         inputSchema: {
           type: "object",
           properties: {
