@@ -9,7 +9,7 @@
   },
   "keywords": [],
   "author": "ozwei",
-  "license": "ISC",
+  "license": "MIT",
   "description": "A Model Context Protocol bridge for LM Studio",
   "dependencies": {
     "@modelcontextprotocol/sdk": "^1.29.0",

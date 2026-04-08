@@ -1,10 +1,6 @@
 # LM Studio MCP Bridge
 
-[![License](https://img.shields.io/badge/license-ISC-blue.svg)](LICENSE)
-
-# LM Studio MCP Bridge
-
-[![License](https://img.shields.io/badge/license-ISC-blue.svg)](LICENSE)
+[![License](https://img.shields.io/badge/license-MIT-blue.svg)](LICENSE)
 
 A Node.js based Model Context Protocol (MCP) bridge that enables **Antigravity** (and other MCP clients) to interact with locally hosted Large Language Models (LLMs) via **LM Studio**.
 
@@ -139,4 +135,4 @@ Add the bridge to your MCP settings:
 
 ## License
 
-This project is licensed under the ISC License - see the [LICENSE](LICENSE) file for details.
+This project is licensed under the MIT License - see the [LICENSE](LICENSE) file for details.
