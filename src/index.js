@@ -86,6 +86,13 @@ server.setRequestHandler(ListToolsRequestSchema, async () => {
             json_schema: { type: "object" },
             temperature: { type: "number", default: 0.7 },
             max_tokens: { type: "number", default: 4096 },
+            top_p: { type: "number" },
+            top_k: { type: "integer" },
+            stop: { type: "array", items: { type: "string" } },
+            presence_penalty: { type: "number" },
+            frequency_penalty: { type: "number" },
+            repeat_penalty: { type: "number" },
+            seed: { type: "integer" },
           },
           required: ["prompt"],
         },
@@ -101,6 +108,10 @@ server.setRequestHandler(ListToolsRequestSchema, async () => {
             reasoning_effort: { type: "string", enum: ["low", "medium", "high"], description: "Optional: Control for reasoning models." },
             model: { type: "string" },
             max_tokens: { type: "number", default: 4096 },
+            top_p: { type: "number" },
+            presence_penalty: { type: "number" },
+            frequency_penalty: { type: "number" },
+            temperature: { type: "number" },
           },
           required: ["input"],
         },
@@ -248,7 +259,11 @@ server.setRequestHandler(CallToolRequestSchema, async (request) => {
   try {
     switch (name) {
       case "query_local_llm": {
-        const { prompt, systemPrompt, temperature, max_tokens, model, image_path, json_mode, json_schema } = args;
+        const { 
+          prompt, systemPrompt, temperature, max_tokens, model, image_path, 
+          json_mode, json_schema, top_p, top_k, stop, 
+          presence_penalty, frequency_penalty, repeat_penalty, seed 
+        } = args;
         
         let messages = [
           { role: "system", content: systemPrompt || "You are a helpful assistant." }
@@ -285,6 +300,13 @@ server.setRequestHandler(CallToolRequestSchema, async (request) => {
           messages,
           temperature: temperature || 0.7,
           max_tokens: max_tokens || 4096,
+          top_p: top_p || undefined,
+          top_k: top_k || undefined,
+          stop: stop || undefined,
+          presence_penalty: presence_penalty || undefined,
+          frequency_penalty: frequency_penalty || undefined,
+          repeat_penalty: repeat_penalty || undefined,
+          seed: seed || undefined,
           stream: false,
         };
 
@@ -322,7 +344,10 @@ server.setRequestHandler(CallToolRequestSchema, async (request) => {
       }
 
       case "query_local_llm_stateful": {
-        let { input, previous_response_id, reasoning_effort, model, max_tokens } = args;
+        let { 
+          input, previous_response_id, reasoning_effort, model, max_tokens,
+          top_p, presence_penalty, frequency_penalty, temperature
+        } = args;
         
         if (!model) {
             const modelsRes = await fetch(`${LM_BASE_URL}/v1/models`, { headers: authHeaders });
@@ -338,6 +363,10 @@ server.setRequestHandler(CallToolRequestSchema, async (request) => {
           input,
           previous_response_id,
           max_tokens: max_tokens || 4096,
+          top_p: top_p || undefined,
+          presence_penalty: presence_penalty || undefined,
+          frequency_penalty: frequency_penalty || undefined,
+          temperature: temperature || undefined,
           stream: false,
         };
 

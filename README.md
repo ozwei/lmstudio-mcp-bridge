@@ -10,7 +10,7 @@ This bridge acts as a translation layer between the MCP standard and LM Studio's
 
 ## Features
 
-- 💬 **Dynamic Chat & Vision**: Query local LLMs with text and images. Supports structured JSON output and reasoning.
+- 💬 **Dynamic Chat & Vision**: Query local LLMs with text and images. Supports structured JSON output, reasoning, and professional inference controls (`top_p`, `top_k`, `seed`, `stop`, etc.).
 - 📂 **Privacy-First RAG**: Semantic search across local directories using local embeddings.
 - 📑 **Direct File Interaction**: Read, analyze, and query local files directly.
 - 🏗️ **Model Orchestration**: Programmatically load and unload models to manage hardware resources.
@@ -21,13 +21,13 @@ This bridge acts as a translation layer between the MCP standard and LM Studio's
 
 ---
 
-## Available Tools (v1.7.1)
+## Available Tools (v1.8.0)
 
 The bridge provides a comprehensive suite of **16 tools** categorized for various AI workflows:
 
 ### 🗨️ Core Interaction
-- `query_local_llm`: Standard text generation. Supports `image_path`, `json_mode`, and `json_schema`. (Auto-selects model if omitted).
-- `query_local_llm_stateful`: Advanced stateful query using `/v1/responses`. Supports `previous_response_id` and `reasoning_effort`. (Auto-selects model if omitted).
+- `query_local_llm`: Standard text generation. Supports Vision, JSON Schema, and expert parameters (`top_p`, `top_k`, `stop`, `penalty`, `seed`).
+- `query_local_llm_stateful`: Advanced stateful query using `/v1/responses`. Supports stateful context, reasoning control, and sampling parameters.
 - `analyze_local_image`: Direct image analysis using local vision models.
 - `analyze_local_image_async`: Start background image analysis (returns a Task ID).
 - `get_bridge_task_status`: Check progress of asynchronous vision tasks.
