@@ -21,9 +21,9 @@ This bridge acts as a translation layer between the MCP standard and LM Studio's
 
 ---
 
-## Available Tools (v1.8.1)
+## Available Tools (v1.9.0)
 
-The bridge provides a comprehensive suite of **16 tools** categorized for various AI workflows:
+The bridge provides a comprehensive suite of **19 tools** categorized for various AI workflows:
 
 ### 🗨️ Core Interaction
 - `query_local_llm`: Standard text generation. Supports Vision, JSON Schema, and expert parameters (`top_p`, `top_k`, `stop`, `penalty`, `seed`).
@@ -43,6 +43,11 @@ The bridge provides a comprehensive suite of **16 tools** categorized for variou
 - `list_local_models`: See all loaded and available models (optionally detailed).
 - `load_local_model`: Load a specific model ID into memory/VRAM.
 - `unload_local_model`: Free up resources by unloading models.
+
+### 🌐 Mesh & Network (LM Link)
+- `get_lm_link_status`: View current network status and all discovered mesh devices.
+- `manage_lm_link`: Administrative control to `enable`, `disable`, or `rename` your local Link node.
+- `set_preferred_lm_link_device`: Programmatically route AI tasks to a specific remote machine.
 
 ### 🛠️ System & Debugging
 - `get_system_health`: Monitor bridge machine CPU and Memory usage.

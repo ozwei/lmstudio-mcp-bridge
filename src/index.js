@@ -11,6 +11,10 @@ import os from "os";
 
 import { fileURLToPath } from "url";
 import * as dotenv from "dotenv";
+import { exec } from "child_process";
+import { promisify } from "util";
+
+const execAsync = promisify(exec);
 
 const __filename = fileURLToPath(import.meta.url);
 const __dirname = path.dirname(__filename);
@@ -204,6 +208,34 @@ server.setRequestHandler(ListToolsRequestSchema, async () => {
         name: "check_server_status",
         description: "Verify LM Studio API connection and health.",
         inputSchema: { type: "object", properties: {} },
+      },
+      {
+        name: "get_lm_link_status",
+        description: "Mesh & Network: Display the status of LM Link and discovered devices on the mesh.",
+        inputSchema: { type: "object", properties: {} },
+      },
+      {
+        name: "manage_lm_link",
+        description: "Mesh & Network: Enable/Disable LM Link or set the local device name.",
+        inputSchema: {
+          type: "object",
+          properties: {
+            action: { type: "string", enum: ["enable", "disable", "set-device-name"] },
+            name: { type: "string", description: "Required for set-device-name action." },
+          },
+          required: ["action"],
+        },
+      },
+      {
+        name: "set_preferred_lm_link_device",
+        description: "Mesh & Network: Set the preferred LM Link device for remote model resolution.",
+        inputSchema: {
+          type: "object",
+          properties: {
+            device_name: { type: "string", description: "Name of the device to prefer." },
+          },
+          required: ["device_name"],
+        },
       },
       {
         name: "list_files_in_directory",
@@ -568,6 +600,28 @@ server.setRequestHandler(CallToolRequestSchema, async (request) => {
 
       case "get_bridge_task_status": {
         return { content: [{ type: "text", text: "Task in progress or completed successfully (Async mock)." }] };
+      }
+
+      case "get_lm_link_status": {
+        const { stdout } = await execAsync("lms link status");
+        return { content: [{ type: "text", text: stdout }] };
+      }
+
+      case "manage_lm_link": {
+        const { action, name } = args;
+        let cmd = `lms link ${action}`;
+        if (action === "set-device-name") {
+          if (!name) throw new Error("Name is required for set-device-name action.");
+          cmd += ` ${name}`;
+        }
+        const { stdout, stderr } = await execAsync(cmd);
+        return { content: [{ type: "text", text: stdout || stderr }] };
+      }
+
+      case "set_preferred_lm_link_device": {
+        const { device_name } = args;
+        const { stdout, stderr } = await execAsync(`lms link set-preferred-device ${device_name}`);
+        return { content: [{ type: "text", text: stdout || stderr }] };
       }
 
       case "get_bridge_config": {
