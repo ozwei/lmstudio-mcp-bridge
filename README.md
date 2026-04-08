@@ -125,6 +125,21 @@ If you are using **LM Link** to connect multiple devices:
 4. **Proxying**: Set `LM_HOST=localhost` in your `.env`. The bridge will talk to your local client, which will transparently route requests to the remote models via the secure link.
 
 **Data Flow:**
+
+```mermaid
+graph LR
+    A["IDE (Antigravity)"] -- MCP Protocol --> B["MCP Bridge (Local Device)"]
+    B -- HTTP/JSON --> C["Local LM Studio Client"]
+    C -- Secure Tunnel (LM Link) --> D["Remote LM Studio Server"]
+    D -- Inference --> E["GPU / Local LLM"]
+
+    style A fill:#3498db,color:#fff,stroke:#2980b9,stroke-width:2px
+    style B fill:#9b59b6,color:#fff,stroke:#8e44ad,stroke-width:2px
+    style C fill:#2ecc71,color:#fff,stroke:#27ae60,stroke-width:2px
+    style D fill:#e67e22,color:#fff,stroke:#d35400,stroke-width:2px
+    style E fill:#e74c3c,color:#fff,stroke:#c0392b,stroke-width:2px
+```
+
 `IDE (Antigravity/Claude Code) -> MCP Bridge -> Local LM Studio Client -> LM Link -> Remote LM Studio Server`
 
 ### 4. Usage in Antigravity
