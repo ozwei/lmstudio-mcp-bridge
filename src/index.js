@@ -91,6 +91,21 @@ server.setRequestHandler(ListToolsRequestSchema, async () => {
         },
       },
       {
+        name: "query_local_llm_stateful",
+        description: "Advanced: Stateful query using the /v1/responses endpoint. Supports reasoning control and follow-ups via previous_response_id.",
+        inputSchema: {
+          type: "object",
+          properties: {
+            input: { type: "string", description: "The user prompt." },
+            previous_response_id: { type: "string", description: "Optional: ID from a previous response to continue the conversation." },
+            reasoning_effort: { type: "string", enum: ["low", "medium", "high"], description: "Optional: Control for reasoning models." },
+            model: { type: "string" },
+            max_tokens: { type: "number", default: 4096 },
+          },
+          required: ["input"],
+        },
+      },
+      {
         name: "analyze_local_image",
         description: "Vision: Privacy-focused image analysis using local vision models (Llava, Moondream, etc).",
         inputSchema: {
@@ -292,6 +307,53 @@ server.setRequestHandler(CallToolRequestSchema, async (request) => {
         const result = await response.json();
         if (result.error) throw new Error(JSON.stringify(result.error));
         return { content: [{ type: "text", text: result.choices?.[0]?.message?.content || "" }] };
+      }
+
+      case "query_local_llm_stateful": {
+        const { input, previous_response_id, reasoning_effort, model, max_tokens } = args;
+        
+        const payload = {
+          model: model || undefined,
+          input,
+          previous_response_id,
+          max_tokens: max_tokens || 4096,
+          stream: false,
+        };
+
+        if (reasoning_effort) {
+          payload.reasoning = { effort: reasoning_effort };
+        }
+
+        await logDebug(`[BRIDGE] Sending stateful request to ${model || 'default model'}...`);
+        const response = await fetch(`${LM_BASE_URL}/v1/responses`, {
+          method: "POST",
+          headers: authHeaders,
+          body: JSON.stringify(payload)
+        });
+        
+        const result = await response.json();
+        await logDebug(`[BRIDGE] Stateful Response ID: ${result.id}`);
+        
+        if (result.error) throw new Error(JSON.stringify(result.error));
+        
+        // Extract text from the output. In /v1/responses, it usually comes in result.output array
+        let text = "";
+        if (result.output && Array.isArray(result.output)) {
+          text = result.output
+            .filter(o => o.type === "text")
+            .map(o => o.text)
+            .join("");
+        } else if (result.choices?.[0]?.message?.content) {
+          // Fallback if it behaves like chat completions
+          text = result.choices[0].message.content;
+        }
+
+        return { 
+          content: [
+            { type: "text", text: text || "No text content returned." },
+            { type: "text", text: `\n\n[Response ID: ${result.id}]` }
+          ] 
+        };
       }
 
       case "analyze_local_image": {

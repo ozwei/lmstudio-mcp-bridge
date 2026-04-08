@@ -21,10 +21,11 @@ This bridge acts as a translation layer between the MCP standard and LM Studio's
 
 ## Available Tools (v1.7.0)
 
-The bridge provides a comprehensive suite of **15 tools** categorized for various AI workflows:
+The bridge provides a comprehensive suite of **16 tools** categorized for various AI workflows:
 
 ### 🗨️ Core Interaction
 - `query_local_llm`: Standard text generation. Supports `image_path`, `json_mode`, and `json_schema`.
+- `query_local_llm_stateful`: Advanced stateful query using `/v1/responses`. Supports `previous_response_id` and `reasoning_effort`.
 - `analyze_local_image`: Direct image analysis using local vision models.
 - `analyze_local_image_async`: Start background image analysis (returns a Task ID).
 - `get_bridge_task_status`: Check progress of asynchronous vision tasks.
@@ -66,12 +67,20 @@ Force the model to return valid JSON following a specific schema.
 }
 ```
 
-### 🖼️ Vision Analysis
-Analyze a local screenshot or diagram.
 ```json
 {
   "prompt": "What is shown in this architecture diagram?",
   "image_path": "C:/Users/otwo/Desktop/system_init.png"
+}
+```
+
+### 🧠 Stateful Follow-up (Responses API)
+Continue a conversation without re-sending history by using a Response ID.
+```json
+{
+  "input": "Can you explain the previous calculation in more detail?",
+  "previous_response_id": "resp_987654321",
+  "reasoning_effort": "high"
 }
 ```
 
