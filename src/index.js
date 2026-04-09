@@ -11,7 +11,7 @@ import os from "os";
 
 import { fileURLToPath } from "url";
 import * as dotenv from "dotenv";
-import { exec } from "child_process";
+import { exec, spawn } from "child_process";
 import { promisify } from "util";
 
 const execAsync = promisify(exec);
@@ -281,6 +281,91 @@ server.setRequestHandler(ListToolsRequestSchema, async () => {
         name: "get_bridge_config",
         description: "Retrieve current bridge environment and network configuration.",
         inputSchema: { type: "object", properties: {} },
+      },
+      {
+        name: "lms_status",
+        description: "CLI: Show the overall health of the LM Studio daemon and server.",
+        inputSchema: { type: "object", properties: {} },
+      },
+      {
+        name: "lms_ls",
+        description: "CLI: List models currently available on disk.",
+        inputSchema: { type: "object", properties: {} },
+      },
+      {
+        name: "lms_ps",
+        description: "CLI: List models currently loaded in memory.",
+        inputSchema: { type: "object", properties: {} },
+      },
+      {
+        name: "lms_get",
+        description: "CLI: Search for or download models from LM Studio Hub.",
+        inputSchema: {
+          type: "object",
+          properties: {
+            query: { type: "string", description: "Search query or model identifier." },
+            download: { type: "boolean", default: false, description: "Whether to download the model if found." },
+          },
+          required: ["query"],
+        },
+      },
+      {
+        name: "lms_import",
+        description: "CLI: Import a model file into LM Studio.",
+        inputSchema: {
+          type: "object",
+          properties: {
+            path: { type: "string", description: "Path to the model file (.gguf)." },
+          },
+          required: ["path"],
+        },
+      },
+      {
+        name: "lms_server_control",
+        description: "CLI: Manage the local inference server.",
+        inputSchema: {
+          type: "object",
+          properties: {
+            action: { type: "string", enum: ["start", "stop", "status"] },
+          },
+          required: ["action"],
+        },
+      },
+      {
+        name: "lms_load_cli",
+        description: "CLI: Advanced model loading with granular control.",
+        inputSchema: {
+          type: "object",
+          properties: {
+            model_id: { type: "string" },
+            gpu: { type: "string", description: "GPU offload (e.g., 'max', '0.5', 'off')." },
+            context_length: { type: "number", description: "Context length override." },
+            identifier: { type: "string", description: "Custom identifier for the loaded model instance." },
+          },
+          required: ["model_id"],
+        },
+      },
+      {
+        name: "lms_log_snapshot",
+        description: "CLI: Capture a snapshot of current logs for a brief duration.",
+        inputSchema: {
+          type: "object",
+          properties: {
+            duration_ms: { type: "number", default: 2000, description: "How long to capture logs in milliseconds." },
+          },
+        },
+      },
+      {
+        name: "lms_runtime_control",
+        description: "CLI: Manage and update the inference runtime engines.",
+        inputSchema: {
+          type: "object",
+          properties: {
+            action: { type: "string", enum: ["ls", "select", "update", "get", "survey"] },
+            target: { type: "string", description: "Optional target (e.g., engine name or identifier)." },
+          },
+          required: ["action"],
+        },
       }
     ],
   };
@@ -626,6 +711,73 @@ server.setRequestHandler(CallToolRequestSchema, async (request) => {
 
       case "get_bridge_config": {
         return { content: [{ type: "text", text: `Host: ${LM_HOST}\nPort: ${LM_PORT}\nBase URL: ${LM_BASE_URL}\nAuth: ${LM_API_TOKEN ? 'Enabled' : 'None'}` }] };
+      }
+      
+      case "lms_status": {
+        const { stdout, stderr } = await execAsync("lms status");
+        return { content: [{ type: "text", text: stdout || stderr }] };
+      }
+
+      case "lms_ls": {
+        const { stdout, stderr } = await execAsync("lms ls");
+        return { content: [{ type: "text", text: stdout || stderr }] };
+      }
+
+      case "lms_ps": {
+        const { stdout, stderr } = await execAsync("lms ps");
+        return { content: [{ type: "text", text: stdout || stderr }] };
+      }
+
+      case "lms_get": {
+        const { query, download } = args;
+        const cmd = download ? `lms get ${query}` : `lms get ${query} --search`;
+        const { stdout, stderr } = await execAsync(cmd);
+        return { content: [{ type: "text", text: stdout || stderr }] };
+      }
+
+      case "lms_import": {
+        const { path: modelPath } = args;
+        const { stdout, stderr } = await execAsync(`lms import "${modelPath}"`);
+        return { content: [{ type: "text", text: stdout || stderr }] };
+      }
+
+      case "lms_server_control": {
+        const { action } = args;
+        const { stdout, stderr } = await execAsync(`lms server ${action}`);
+        return { content: [{ type: "text", text: stdout || stderr }] };
+      }
+
+      case "lms_load_cli": {
+        const { model_id, gpu, context_length, identifier } = args;
+        let cmd = `lms load "${model_id}"`;
+        if (gpu) cmd += ` --gpu ${gpu}`;
+        if (context_length) cmd += ` --context-length ${context_length}`;
+        if (identifier) cmd += ` --identifier "${identifier}"`;
+        const { stdout, stderr } = await execAsync(cmd);
+        return { content: [{ type: "text", text: stdout || stderr }] };
+      }
+
+      case "lms_log_snapshot": {
+        const duration = args.duration_ms || 2000;
+        return new Promise((resolve) => {
+          const child = spawn("lms", ["log", "stream"]);
+          let output = "";
+          child.stdout.on("data", (data) => { output += data.toString(); });
+          child.stderr.on("data", (data) => { output += data.toString(); });
+          
+          setTimeout(() => {
+            child.kill();
+            resolve({ content: [{ type: "text", text: output || "No logs captured in time window." }] });
+          }, duration);
+        });
+      }
+
+      case "lms_runtime_control": {
+        const { action, target } = args;
+        let cmd = `lms runtime ${action}`;
+        if (target) cmd += ` ${target}`;
+        const { stdout, stderr } = await execAsync(cmd);
+        return { content: [{ type: "text", text: stdout || stderr }] };
       }
 
       default:

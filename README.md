@@ -21,9 +21,9 @@ This bridge acts as a translation layer between the MCP standard and LM Studio's
 
 ---
 
-## Available Tools (v1.9.0)
+## Available Tools (v2.0.0)
 
-The bridge provides a comprehensive suite of **19 tools** categorized for various AI workflows:
+The bridge provides a comprehensive suite of **28 tools** categorized for various AI workflows:
 
 ### 🗨️ Core Interaction
 - `query_local_llm`: Standard text generation. Supports Vision, JSON Schema, and expert parameters (`top_p`, `top_k`, `stop`, `penalty`, `seed`).
@@ -53,6 +53,17 @@ The bridge provides a comprehensive suite of **19 tools** categorized for variou
 - `get_system_health`: Monitor bridge machine CPU and Memory usage.
 - `check_server_status`: Verify connection to the LM Studio API.
 - `get_bridge_config`: View current host, port, and authentication settings.
+
+### 🖥️ CLI Management (Advanced)
+- `lms_status`: Show the overall health of the LM Studio daemon and server.
+- `lms_ls`: List models currently available on disk (richer than API list).
+- `lms_ps`: List models currently loaded in memory (RAM/VRAM).
+- `lms_get`: Search for or download models from LM Studio Hub / Hugging Face.
+- `lms_import`: Import a local model file (.gguf) into LM Studio.
+- `lms_server_control`: Start, stop, or check the status of the inference server.
+- `lms_load_cli`: Load models with advanced controls (GPU offload, context length).
+- `lms_log_snapshot`: Capture a snapshot of current system logs.
+- `lms_runtime_control`: Manage and update the inference runtime engines (engines list, survey hardware).
 
 ---
 
